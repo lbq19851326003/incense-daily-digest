@@ -24,9 +24,7 @@ feeds:
   - name: "Google News - Incense"
     url: "https://news.google.com/rss/search?q=incense&hl=en-US&gl=US&ceid=US:en"
     enabled: true
-  - name: "Google News - Oud/Agarwood"
-    url: "https://news.google.com/rss/search?q=oud+OR+agarwood&hl=en-US&gl=US&ceid=US:en"
-    enabled: true
+  # 已移除 oud/agarwood（该词偏香水/原料收藏，与线香不匹配）
   - name: "Google News - Japanese Incense"
     url: "https://news.google.com/rss/search?q=Japanese+incense+OR+kodo&hl=en-US&gl=US&ceid=US:en"
     enabled: true
@@ -71,7 +69,7 @@ sogou:
   keywords:
     - "线香"
     - "香道"
-    - "沉香"
+    - "沉香 线香"
     - "日本线香"
     - "品香"
   max_articles_per_keyword: 6
