@@ -1,0 +1,85 @@
+# 线香每日资讯 RSS 源配置
+# 所有源会被抓取后喂给 LLM 做分类摘要
+
+feeds:
+  # ============================================================
+  # 第一类：Google News 关键词（仅在 GitHub Actions 云端可用，
+  # 海外服务器可访问；本地网络会超时，本地调试请设 enabled: false）
+  # ============================================================
+  - name: "Google News - 线香"
+    url: "https://news.google.com/rss/search?q=%E7%BA%BF%E9%A6%99&hl=zh-CN&gl=CN&ceid=CN:zh-Hans"
+    enabled: true
+  - name: "Google News - 沉香"
+    url: "https://news.google.com/rss/search?q=%E6%B2%89%E9%A6%99&hl=zh-CN&gl=CN&ceid=CN:zh-Hans"
+    enabled: true
+  - name: "Google News - 香道"
+    url: "https://news.google.com/rss/search?q=%E9%A6%99%E9%81%93&hl=zh-CN&gl=CN&ceid=CN:zh-Hans"
+    enabled: true
+  - name: "Google News - 檀香/品香"
+    url: "https://news.google.com/rss/search?q=%E6%AA%80%E9%A6%99+OR+%E5%93%81%E9%A6%99&hl=zh-CN&gl=CN&ceid=CN:zh-Hans"
+    enabled: true
+  - name: "Google News - 日本线香"
+    url: "https://news.google.com/rss/search?q=%E6%97%A5%E6%9C%AC%E7%BA%BF%E9%A6%99&hl=zh-CN&gl=CN&ceid=CN:zh-Hans"
+    enabled: true
+  - name: "Google News - Incense"
+    url: "https://news.google.com/rss/search?q=incense&hl=en-US&gl=US&ceid=US:en"
+    enabled: true
+  - name: "Google News - Oud/Agarwood"
+    url: "https://news.google.com/rss/search?q=oud+OR+agarwood&hl=en-US&gl=US&ceid=US:en"
+    enabled: true
+  - name: "Google News - Japanese Incense"
+    url: "https://news.google.com/rss/search?q=Japanese+incense+OR+kodo&hl=en-US&gl=US&ceid=US:en"
+    enabled: true
+  - name: "Reddit r/incense"
+    url: "https://www.reddit.com/r/incense/.rss"
+    enabled: true
+
+  # ============================================================
+  # 第二类：国内可达 RSS 兜底源（本地调试 / 云端都能跑）
+  # ============================================================
+  # 说明：沉香网内容偏"沉香原料/手串/收藏"，与线香成品/香道玩法不匹配，已禁用
+  - name: "沉香网（暂禁用）"
+    url: "https://www.chenxiang123.com/feed"
+    enabled: false
+  - name: "少数派 sspai"
+    url: "https://sspai.com/feed"
+    enabled: true
+  - name: "IT之家"
+    url: "https://www.ithome.com/rss/"
+    enabled: true
+  - name: "新浪科技滚动"
+    url: "https://rss.sina.com.cn/tech/rollnews.xml"
+    enabled: true
+
+  # ============================================================
+  # 第三类：微信公众号（待接入，占位）
+  # 方案：wechat2rss 本地自部署（扫码登录后把关注的公众号转成 RSS）
+  # 部署完成后把对应 RSS 地址填进这里，例如：
+  # - name: "公众号-中国香道"
+  #   url: "http://127.0.0.1:8080/feeds/公众号ID.rss"
+  #   enabled: true
+  # ============================================================
+
+# 抓取设置
+fetch:
+  hours_back: 72           # 只抓最近 N 小时的文章（新闻源周末可能无更新，放宽到 72h）
+  max_articles_per_feed: 12  # 每个源最多抓多少条
+
+# LLM 设置（API key 从环境变量读，不要写在这里）
+llm:
+  model: "deepseek-chat"
+  base_url: "https://api.deepseek.com/v1"
+  temperature: 0.3
+
+# 分类标签
+categories:
+  - "行业动态"
+  - "新品上市"
+  - "原料/价格行情"
+  - "香道文化/玩法"
+  - "品牌动作"
+
+# 飞书推送（凭证从环境变量读）
+feishu:
+  receive_id_type: "email"    # 已实测可用：email（邮箱直发，无需额外权限）；也可用 open_id / phone / chat_id
+  msg_type: "text"            # text 或 post
