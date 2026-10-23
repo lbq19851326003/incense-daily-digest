@@ -1,17 +1,26 @@
 """
 线香每日资讯摘要脚本
-流程：抓 RSS → 过滤最近 24h → 去重 → LLM 分类摘要 → 发飞书会话
+流程：抓 RSS + 搜狗公众号关键词 → 去重 → LLM 分类摘要 → 发飞书会话
 """
 import os
+import re
 import sys
 import yaml
 import feedparser
 import requests
+import random
+import time
 from datetime import datetime, timedelta, timezone
 from openai import OpenAI
 from urllib.parse import quote
 
 CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yaml")
+
+SOGOU_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "Chrome/120.0.0.0 Safari/537.36",
+    "Accept-Language": "zh-CN,zh;q=0.9",
+}
 
 
 def load_config():
@@ -59,6 +68,63 @@ def fetch_feeds(cfg):
             print(f"[OK] {feed['name']}: {count} 条", file=sys.stderr)
         except Exception as e:
             print(f"[FAIL] {feed['name']}: {e}", file=sys.stderr)
+
+    return articles
+
+
+def fetch_sogou_wechat(cfg):
+    """搜狗微信搜索：按关键词检索公众号文章（无需公众号名单）
+    返回文章列表；低频抓取 + 随机延时，降低风控概率
+    """
+    sg = cfg.get("sogou", {})
+    keywords = sg.get("keywords", [])
+    max_per = sg.get("max_articles_per_keyword", 6)
+    if not keywords:
+        return []
+
+    articles = []
+    seen_links = set()
+    base = "https://weixin.sogou.com"
+
+    for kw in keywords:
+        try:
+            url = f"{base}/weixin?type=2&query=" + quote(kw)
+            resp = requests.get(url, timeout=12, headers=SOGOU_HEADERS)
+            text = resp.text
+
+            if "验证码" in text or "antispider" in text or "请输入验证码" in text:
+                print(f"[WARN] 搜狗触发风控（关键词：{kw}），今日跳过该词", file=sys.stderr)
+                continue
+
+            # 标题 + 跳转链接：<h3><a href="/link?url=...">标题</a></h3>
+            items = re.findall(
+                r'<h3>\s*<a[^>]+href="(/link\?url=[^"]+)"[^>]*>(.*?)</a>\s*</h3>', text, re.S)
+            # 摘要：<p class="txt-info" ...>摘要</p>
+            summaries = re.findall(r'<p class="txt-info"[^>]*>(.*?)</p>', text, re.S)
+
+            count = 0
+            for idx, (href, title_html) in enumerate(items):
+                if count >= max_per:
+                    break
+                title = re.sub(r'<[^>]+>', '', title_html).strip()
+                summary = re.sub(r'<[^>]+>', '', summaries[idx]).strip() if idx < len(summaries) else ""
+                link = base + href.split('&amp;')[0]
+                if not title or link in seen_links:
+                    continue
+                seen_links.add(link)
+                articles.append({
+                    "source": f"公众号·{kw}",
+                    "title": title,
+                    "link": link,
+                    "summary": summary[:200],
+                })
+                count += 1
+            print(f"[OK] 公众号·{kw}: {count} 条", file=sys.stderr)
+
+            # 随机延时，降低搜狗风控概率
+            time.sleep(random.uniform(3, 7))
+        except Exception as e:
+            print(f"[FAIL] 公众号·{kw}: {e}", file=sys.stderr)
 
     return articles
 
@@ -163,6 +229,8 @@ def main():
     cfg = load_config()
     print("开始抓取 RSS...", file=sys.stderr)
     articles = fetch_feeds(cfg)
+    print("开始检索公众号（搜狗）...", file=sys.stderr)
+    articles += fetch_sogou_wechat(cfg)
     print(f"共抓到 {len(articles)} 条文章", file=sys.stderr)
 
     print("调用 LLM 摘要...", file=sys.stderr)

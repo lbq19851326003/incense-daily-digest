@@ -65,6 +65,17 @@ fetch:
   hours_back: 72           # 只抓最近 N 小时的文章（新闻源周末可能无更新，放宽到 72h）
   max_articles_per_feed: 12  # 每个源最多抓多少条
 
+# 搜狗微信搜索（公众号关键词检索，无需公众号名单）
+# 说明：搜狗是公众号文章的唯一公开检索入口；低频抓取降低风控概率
+sogou:
+  keywords:
+    - "线香"
+    - "香道"
+    - "沉香"
+    - "日本线香"
+    - "品香"
+  max_articles_per_keyword: 6
+
 # LLM 设置（API key 从环境变量读，不要写在这里）
 llm:
   model: "deepseek-chat"
