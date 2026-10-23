@@ -125,7 +125,11 @@ def send_feishu(text, receive_id_type="open_id"):
     """发飞书消息（支持 open_id / phone / email / chat_id）"""
     token = get_feishu_token()
     receive_id = os.environ["FEISHU_RECEIVE_ID"]
-    receive_id_type = os.environ.get("FEISHU_RECEIVE_ID_TYPE", receive_id_type)
+    # 自动判断：优先用环境变量；未设置时，收件人含 @ 视为邮箱，否则视为 open_id
+    if os.environ.get("FEISHU_RECEIVE_ID_TYPE"):
+        receive_id_type = os.environ["FEISHU_RECEIVE_ID_TYPE"]
+    elif "@" in receive_id:
+        receive_id_type = "email"
 
     # 飞书 text 消息内容需要 JSON 字符串
     content = '{"text": "' + text.replace('"', '\\"').replace("\n", "\\n") + '"}'
